@@ -1,0 +1,18 @@
+
+# права доступа
+class IsAuthorOrReadOnly(permissions.BasePermission):
+
+    def has_object_permission(self, request, view, obj):
+        return (request.method in permissions.SAFE_METHODS
+                or obj.author == request.user)
+
+# https://practicum.yandex.ru/learn/backend-developer/courses/f1186d60-6f68-4f7a-8416-b6b3b7be0d38/sprints/134546/topics/f8089348-4e71-4fe8-ac5d-e263b4ff1404/lessons/dbf5461f-6fee-4751-b3a0-557e25ad2bc8/
+# Спринт 11/18 → Тема 1/3: Права, лимиты запросов и фильтрация ответов в DRF → Урок 2/5
+# https://www.django-rest-framework.org/api-guide/permissions/#api-reference
+# На той же странице https://www.django-rest-framework.org/api-guide/permissions/#examples
+
+
+
+# Письма
+# https://practicum.yandex.ru/trainer/backend-developer/lesson/4fbab864-bff6-48af-8173-03848b738a51/?searchedText=%D0%BF%D0%B8%D1%81%D1%8C%D0%BC%D0%B0
+# Спринт 7/18 → Тема 4/8: Пользователи в Django → Урок 2/5
