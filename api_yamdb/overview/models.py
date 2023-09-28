@@ -10,16 +10,22 @@ class Review(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='titles',
+        related_name='reviews',
         verbose_name='Автор'
     )
     score = models.IntegerField(
         verbose_name='Оценка произведения',
-        validators=[MinValueValidator(1), MaxValueValidator(10)]
+        validators=[MinValueValidator(1, message='Минимальная оценка - 1'),
+                    MaxValueValidator(10, message='Максимальня оценка - 10')]
     )
     pub_date = models.DateTimeField(
         verbose_name='Дата добавления отзыва',
         auto_now_add=True
+    )
+    title = models.ForeignKey(
+        Title,
+        on_delete=models.CASCADE,
+        related_name='reviews'
     )
 
     class Meta:
@@ -45,6 +51,10 @@ class Comment(models.Model):
     pub_date = models.DateTimeField(
         verbose_name='Дата добавления комментария',
         auto_now_add=True
+    )
+    review = models.ForeignKey(
+        Review, on_delete=models.CASCADE,
+        related_name='comments'
     )
 
     class Meta:
