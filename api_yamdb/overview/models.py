@@ -1,14 +1,14 @@
 from django.db import models
 
 
-class Catrgory(models.Models):
+class Category(models.Model):
     name = models.CharField(
         verbose_name="Категория",
         max_length=256
     )
     slug = models.SlugField(
         verbose_name="Слаг",
-        enique=True
+        unique=True
     )
 
     class Meta:
@@ -20,14 +20,14 @@ class Catrgory(models.Models):
         return self.name
 
 
-class Genre(models.Models):
+class Genre(models.Model):
     name = models.CharField(
         verbose_name="Название",
         max_length=256
     )
     slug = models.SlugField(
         verbose_name="Слаг",
-        enique=True
+        unique=True
     )
 
     class Meta:
@@ -62,7 +62,7 @@ class Title(models.Model):
         verbose_name="Жанр",
     )
     category = models.ForeignKey(
-        Catrgory,
+        Category,
         verbose_name="Категория",
         on_delete=models.SET_NULL,
         related_name='titles',
@@ -76,3 +76,21 @@ class Title(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class GenreTitle(models.Model):
+    title = models.ForeignKey(
+        Title,
+        verbose_name='Произведение',
+        on_delete=models.CASCADE)
+    genre = models.ForeignKey(
+        Genre,
+        verbose_name='Жанр',
+        on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = 'Произведение и жанр'
+        verbose_name_plural = 'Произведения и жанры'
+
+    def __str__(self):
+        return f'{self.title}, жанр - {self.genre}'
