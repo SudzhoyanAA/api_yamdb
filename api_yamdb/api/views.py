@@ -50,7 +50,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         title_id = self.kwargs.get("title_id")
         title = get_object_or_404(Title, id=title_id)
-        return title.TitleIdForReview.all()
+        return title.reviews.all()
 
     def perform_create(self, serializer):
         title_id = self.kwargs.get("title_id")
