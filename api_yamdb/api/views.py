@@ -1,10 +1,8 @@
 from rest_framework import viewsets
-from users.models import User
+from .models import User
 from api.serializers import UserSerializer
 from api.permissions import (IsAdminPermissions,
                              IsAuthenticated,
-                             IsOnlyAdminPermissions,
-                             IsAdminOrAuthorOrModeratorPermissions
                              )
 
 
