@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from django.core.validators import RegexValidator
+from rest_framework.validators import UniqueValidator
+
 from .models import User
 
 
@@ -7,7 +9,7 @@ class UserSignUpSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         required=True,
         max_length=150,
-        validators=[RegexValidator(regex=r'^[\w.@+-]+$')],
+        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
     )
     email = serializers.EmailField(required=True, max_length=254)
 
@@ -36,8 +38,15 @@ class UserGetTokenSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    username = serializers.SlugRelatedField(read_only=True,
-                                            slug_field='username')
+    # username = serializers.SlugRelatedField(read_only=True,
+    #                                         slug_field='username')
+
+    username = serializers.CharField(
+        required=True,
+        max_length=150,
+        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
+    )
+    email = serializers.EmailField(required=True, max_length=254)
 
     class Meta:
         model = User

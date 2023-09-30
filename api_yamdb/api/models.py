@@ -22,7 +22,7 @@ class User(AbstractUser):
         help_text=(
             'Required. 150 characters or fewer. '
             'Letters, digits and @/./+/-/_ only.'),
-        validators=[RegexValidator],
+        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
         error_messages={
             'unique': ("A user with that username already exists."),
         },

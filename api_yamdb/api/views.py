@@ -96,6 +96,7 @@ class UserViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=['GET', 'PATCH'],
         url_path='me',
+        url_name='me',
         permission_classes=(permissions.IsAuthenticated,),
     )
     def me(self, request):
