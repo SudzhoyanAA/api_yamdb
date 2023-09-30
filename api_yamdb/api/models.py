@@ -1,35 +1,27 @@
-import enum
-
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
 
 
-# USER = 'user'
-# MODERATOR = 'moderator'
-# ADMIN = 'admin'
-# USER_ROLE = [
-#     (USER, 'user'),
-#     (MODERATOR, 'moderator'),
-#     (ADMIN, 'admin'),
-# ]
+USER = 'user'
+MODERATOR = 'moderator'
+ADMIN = 'admin'
 
-class UserRoles(enum.Enum):
-    user = "user"
-    moderator = "moderator"
-    admin = "admin"
-
-    @classmethod
-    def role_choices(cls):
-        return tuple((attribute.name, attribute.value) for attribute in cls)
+USER_ROLE = (
+    (USER, 'Пользователь'),
+    (MODERATOR, 'Модератор'),
+    (ADMIN, 'Администратор'),
+)
 
 
 class User(AbstractUser):
+
     username = models.CharField(
         max_length=150,
         unique=True,
         help_text=(
-            'Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'),
+            'Required. 150 characters or fewer. '
+            'Letters, digits and @/./+/-/_ only.'),
         validators=[RegexValidator],
         error_messages={
             'unique': ("A user with that username already exists."),
@@ -52,15 +44,13 @@ class User(AbstractUser):
     )
     bio = models.TextField(
         verbose_name='биография',
-        blank=True
+        blank=True,
     )
     role = models.CharField(
         max_length=20,
         verbose_name='роль',
-        # choices=USER_ROLE,
-        choices=UserRoles.role_choices(),
-        # default=USER
-        default=UserRoles.user.name
+        choices=USER_ROLE,
+        default=USER[0]
     )
 
     class Meta:
@@ -70,15 +60,11 @@ class User(AbstractUser):
 
     @property
     def is_moderator(self):
-        return self.role == UserRoles.admin.name
+        return self.role == MODERATOR
 
     @property
     def is_admin(self):
-        return self.role == UserRoles.moderator.name
-
-    @property
-    def is_user(self):
-        return self.role == UserRoles.user.name
+        return self.role == ADMIN or self.is_superuser or self.is_staff
 
     def __str__(self):
         return self.username

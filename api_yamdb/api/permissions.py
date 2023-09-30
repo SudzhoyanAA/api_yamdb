@@ -1,6 +1,5 @@
 from rest_framework import permissions
-from rest_framework import exceptions
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework.permissions import BasePermission
 
 
 class IsAuthenticated(BasePermission):
@@ -21,3 +20,8 @@ class IsAdminPermissions(permissions.BasePermission):
                 and (request.user.is_admin or request.user.is_superuser))
 
 
+class IsAdminOrSuperUser(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+        if request.user.is_authenticated:
+            return request.user.is_admin

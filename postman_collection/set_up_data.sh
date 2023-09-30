@@ -12,3 +12,4 @@ echo "from django.contrib.auth import get_user_model; User = get_user_model(); \
     u, _ = User.objects.get_or_create(username='admin-user'); u.is_superuser = False; u.is_staff = False; u.role = 'admin'; u.email = 'admin-user@admin.ru'; u.set_password('5eCretPaSsw0rD'); u.save(); \
     u, _ = User.objects.get_or_create(username='moderator'); u.is_superuser = False; u.is_staff = False; u.role = 'moderator'; u.email = 'moderator@admin.ru'; u.set_password('5eCretPaSsw0rD'); u.save();" | $python manage.py shell
 echo "Setup done."
+read -sn1 -p "Press any key to continue..."; echo
