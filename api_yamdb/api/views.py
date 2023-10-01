@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.filters import SearchFilter
 
-from overview.models import Category, Genre, Title, Review, User
+from reviews.models import Category, Genre, Title, Review, User
 from .serializers import (
     CategorySerializer, GenreSerializer,
     TitleSerializer, CommentSerializer,

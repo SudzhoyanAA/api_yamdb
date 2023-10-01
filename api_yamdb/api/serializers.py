@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from django.core.validators import RegexValidator
 
-from overview.models import Category, Genre, Title, Review, Comment, User
+from reviews.models import Category, Genre, Title, Review, Comment, User
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -53,6 +53,10 @@ class ReadOnlyTitleSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username', read_only=True,
+    )
+    title = serializers.SlugRelatedField(
+        slug_field='name',
+        read_only=True,
     )
 
     class Meta:
