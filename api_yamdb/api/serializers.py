@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from django.core.validators import RegexValidator
 
-from overview.models import Category, Genre, Title, Review, Comment
+from overview.models import Category, Genre, Title, Review, Comment, User
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -56,7 +57,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        fields = ('__all__')
 
         read_only_fields = ('author',)
 
@@ -78,6 +79,61 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ('id', 'text', 'author', 'pub_date')
+        fields = ('__all__')
 
-        read_only_fields = ('author', 'review',)
+
+class UserSignUpSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        required=True,
+        max_length=150,
+        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
+    )
+    email = serializers.EmailField(required=True, max_length=254)
+
+    class Meta:
+        fields = ('email', 'username')
+        model = User
+
+    # # # Проверить это условие Что-то не так
+
+    def validate_username(self, value):
+        if value == 'me':
+            raise serializers.ValidationError(
+                'Использование данного имени запрещено!'
+            )
+        return value
+
+
+class UserTokenSerializer(serializers.Serializer):
+    confirmation_code = serializers.CharField(required=True)
+    username = serializers.CharField(required=True)
+
+
+class UserGetTokenSerializer(serializers.Serializer):
+    confirmation_code = serializers.CharField(required=True)
+    username = serializers.CharField(required=True)
+
+
+class UserSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        required=True,
+        max_length=150,
+        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
+    )
+    email = serializers.EmailField(required=True, max_length=254)
+
+    class Meta:
+        model = User
+        fields = (
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'bio',
+            'role',
+        )
+
+
+class UserMeSerializer(UserSerializer):
+    class Meta(UserSerializer.Meta):
+        read_only_fields = ('role',)
