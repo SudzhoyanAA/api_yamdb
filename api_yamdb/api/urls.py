@@ -11,7 +11,6 @@ api_v1 = DefaultRouter()
 api_v1.register(r'categories', CategoryViewSet)
 api_v1.register(r'genres', GenreViewSet)
 api_v1.register(r'titles', TitleViewSet)
-api_v1.register(r'titles', TitleViewSet)
 api_v1.register(r'titles/(?P<title_id>\d+)/reviews',
                 ReviewViewSet, basename='reviews')
 api_v1.register(r'titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)'
