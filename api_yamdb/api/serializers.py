@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.core.validators import RegexValidator
+from rest_framework.validators import UniqueValidator
 
 from reviews.models import Category, Genre, Title, Review, Comment, User
 
@@ -97,7 +98,10 @@ class UserSignUpSerializer(serializers.ModelSerializer):
         max_length=150,
         validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
     )
-    email = serializers.EmailField(required=True, max_length=254)
+    email = serializers.EmailField(
+        required=True, max_length=254,
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
 
     class Meta:
         fields = ('email', 'username')
@@ -129,7 +133,10 @@ class UserSerializer(serializers.ModelSerializer):
         max_length=150,
         validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
     )
-    email = serializers.EmailField(required=True, max_length=254)
+    email = serializers.EmailField(
+        required=True, max_length=254,
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
 
     class Meta:
         model = User

@@ -1,4 +1,6 @@
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
+
 from django.db.models import Avg
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
@@ -102,21 +104,17 @@ class UserSignUpViewSet(CreateViewSet):
     permission_classes = (permissions.AllowAny,)
 
     def create(self, request):
+
         serializer = UserSignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data.get('username')
-        try:
-            user, created = User.objects.get_or_create(
-                **serializer.validated_data
-            )
-        except IntegrityError:
-            error = (
-                {'username': ['Это имя уже занято.']}
-                if User.objects.filter(username=username).exists()
-                else {'email': ['Этот емейл уже занят.']}
-            )
-            return Response(error, status=status.HTTP_400_BAD_REQUEST)
+        email = serializer.validated_data.get('email')
+        user, created = User.objects.get_or_create(username=username,
+                                                   email=email)
         confirmation_code = default_token_generator.make_token(user)
+
+
+
         send_mail(
             subject='Код подтверждения YAMDb',
             message=f'Здравствуйте, {user.username} \n\n'
@@ -131,7 +129,49 @@ class UserSignUpViewSet(CreateViewSet):
             from_email=None,
             recipient_list=(user.email,),
         )
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+        # serializer = UserSignUpSerializer(data=request.data)
+        # serializer.is_valid(raise_exception=True)
+        # email = serializer.validated_data.get('email')
+        # username = serializer.validated_data.get('username')
+        # user_username = User.objects.filter(username=username).first()
+        # user_email = User.objects.filter(email=email).first()
+        # if user_username == user_email:
+        #     user, _ = User.objects.get_or_create(
+        #         username=username, email=email)
+        # else:
+        #     raise ValidationError(
+        #         'Пользователи с таким username или email уже существуют',
+        #         status.HTTP_400_BAD_REQUEST,
+        #     )
+        # try:
+        #     user, created = User.objects.get_or_create(
+        #         **serializer.validated_data
+        #     )
+        # except IntegrityError:
+        #     error = (
+        #         {'username': ['Это имя уже занято.']}
+        #         if User.objects.filter(username=username).exists()
+        #         else {'email': ['Этот емейл уже занят.']}
+        #     )
+        #     return Response(error, status=status.HTTP_400_BAD_REQUEST)
+        # confirmation_code = default_token_generator.make_token(user)
+        # send_mail(
+        #     subject='Код подтверждения YAMDb',
+        #     message=f'Здравствуйте, {user.username} \n\n'
+        #             f'Вы получили это сообщение, '
+        #             f'так как на адрес электронной почты: \n'
+        #             f' {user.email}\n'
+        #             f'происходит регистрация на сайте "API_yamdb". \n  \n'
+        #             f'Ваш код подтверждения : {confirmation_code} \n \n'
+        #             f'Если Вы не пытались зарегистрироваться - \n'
+        #             f'просто не отвечайте на данное сообщение и \n'
+        #             f'не производите никаких действий',
+        #     from_email=None,
+        #     recipient_list=(user.email,),
+        # )
+        # return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserGetTokenViewSet(CreateViewSet):
