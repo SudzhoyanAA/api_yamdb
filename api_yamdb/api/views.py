@@ -175,7 +175,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def me(self, request):
         user = self.request.user
         if not user.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)  # Return 401 if not authenticated
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         if request.method == 'GET':
             serializer = UserSerializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
