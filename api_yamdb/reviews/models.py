@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-from django.db import models
+from django.db import models, IntegrityError
 
 
 class User(AbstractUser):
@@ -181,6 +181,14 @@ class Review(models.Model):
 
     def __str__(self):
         return self.text
+
+    def save(self, *args, **kwargs):
+        existing_reviews = Review.objects.filter(title=self.title,
+                                                 author=self.author)
+        if self.pk is None and existing_reviews.exists():
+            raise IntegrityError("Отзыв от данного автора для данного"
+                                 "произведения уже существует.")
+        super().save(*args, **kwargs)
 
 
 class Comment(models.Model):
