@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 from django.core.validators import RegexValidator
 
 from reviews.models import Category, Genre, Title, Review, Comment, User
@@ -66,10 +65,16 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ('author',)
 
     def validate(self, data):
-        user = self.context['request'].user
-        existing_review = Review.objects.filter(author=user).first()
-        if existing_review:
-            raise ValidationError("Вы уже добавили отзыв")
+        request = self.context.get('request')
+        if request.method == 'POST':
+            review = Review.objects.filter(
+                title=self.context['view'].kwargs.get('title_id'),
+                author=self.context['request'].user
+            )
+            if review.exists():
+                raise serializers.ValidationError(
+                    "Вы уже добавили отзыв"
+                )
         return data
 
 
