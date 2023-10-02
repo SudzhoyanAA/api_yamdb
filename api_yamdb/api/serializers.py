@@ -1,23 +1,42 @@
 from rest_framework import serializers
 from django.core.validators import RegexValidator
-from rest_framework.validators import UniqueValidator
+from reviews.models import Category, Genre, Title, Review, Comment, User
 
-from .models import User
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('email', 'username')
+
+    def validate(self, data):
+        if data['username'] == 'me':
+            raise serializers.ValidationError(
+                {'Выберите другой username'})
+        return data
+
+
+class TokenSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(required=True)
+    confirmation_code = serializers.CharField(required=True)
+
+    class Meta:
+        model = User
+        fields = ('username', 'confirmation_code')
 
 
 class UserSignUpSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         required=True,
         max_length=150,
-        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
+        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')]
     )
-    email = serializers.EmailField(required=True, max_length=254)
+    email = serializers.EmailField(
+        required=True,
+        max_length=254,
+    )
 
     class Meta:
         fields = ('email', 'username')
         model = User
-
-    # # # Проверить это условие Что-то не так
 
     def validate_username(self, value):
         if value == 'me':
@@ -29,7 +48,8 @@ class UserSignUpSerializer(serializers.ModelSerializer):
 
 class UserTokenSerializer(serializers.Serializer):
     confirmation_code = serializers.CharField(required=True)
-    username = serializers.CharField(required=True)
+    username = serializers.CharField(required=True,
+                                     max_length=150)
 
 
 class UserGetTokenSerializer(serializers.Serializer):
@@ -38,9 +58,6 @@ class UserGetTokenSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    # username = serializers.SlugRelatedField(read_only=True,
-    #                                         slug_field='username')
-
     username = serializers.CharField(
         required=True,
         max_length=150,
@@ -56,8 +73,19 @@ class UserSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'bio',
-            'role',
+            'role'
         )
+
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError(
+                f'Имя{value} уже занято')
+        return value
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(f'email{value} уже занят')
+        return value
 
 
 class UserMeSerializer(UserSerializer):
