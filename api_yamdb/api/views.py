@@ -1,4 +1,3 @@
-from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 
 from django.db.models import Avg
@@ -18,7 +17,7 @@ from .serializers import (
     CategorySerializer, GenreSerializer,
     TitleSerializer, CommentSerializer,
     ReviewSerializer, ReadOnlyTitleSerializer,
-    UserSerializer, UserMeSerializer, UserGetTokenSerializer,
+    UserSerializer, UserGetTokenSerializer,
     UserSignUpSerializer, UserTokenSerializer
 )
 from .permissions import (IsAdminOrReadOnly, IsAdmin,
@@ -104,17 +103,21 @@ class UserSignUpViewSet(CreateViewSet):
     permission_classes = (permissions.AllowAny,)
 
     def create(self, request):
-
         serializer = UserSignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data.get('username')
-        email = serializer.validated_data.get('email')
-        user, created = User.objects.get_or_create(username=username,
-                                                   email=email)
+        try:
+            user, created = User.objects.get_or_create(
+                **serializer.validated_data
+            )
+        except IntegrityError:
+            error = (
+                {'username': ['Это имя пользователя уже занято.']}
+                if User.objects.filter(username=username).exists()
+                else {'email': ['Этот почтовый адрес уже занят.']}
+            )
+            return Response(error, status=status.HTTP_400_BAD_REQUEST)
         confirmation_code = default_token_generator.make_token(user)
-
-
-
         send_mail(
             subject='Код подтверждения YAMDb',
             message=f'Здравствуйте, {user.username} \n\n'
@@ -129,49 +132,7 @@ class UserSignUpViewSet(CreateViewSet):
             from_email=None,
             recipient_list=(user.email,),
         )
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
-
-        # serializer = UserSignUpSerializer(data=request.data)
-        # serializer.is_valid(raise_exception=True)
-        # email = serializer.validated_data.get('email')
-        # username = serializer.validated_data.get('username')
-        # user_username = User.objects.filter(username=username).first()
-        # user_email = User.objects.filter(email=email).first()
-        # if user_username == user_email:
-        #     user, _ = User.objects.get_or_create(
-        #         username=username, email=email)
-        # else:
-        #     raise ValidationError(
-        #         'Пользователи с таким username или email уже существуют',
-        #         status.HTTP_400_BAD_REQUEST,
-        #     )
-        # try:
-        #     user, created = User.objects.get_or_create(
-        #         **serializer.validated_data
-        #     )
-        # except IntegrityError:
-        #     error = (
-        #         {'username': ['Это имя уже занято.']}
-        #         if User.objects.filter(username=username).exists()
-        #         else {'email': ['Этот емейл уже занят.']}
-        #     )
-        #     return Response(error, status=status.HTTP_400_BAD_REQUEST)
-        # confirmation_code = default_token_generator.make_token(user)
-        # send_mail(
-        #     subject='Код подтверждения YAMDb',
-        #     message=f'Здравствуйте, {user.username} \n\n'
-        #             f'Вы получили это сообщение, '
-        #             f'так как на адрес электронной почты: \n'
-        #             f' {user.email}\n'
-        #             f'происходит регистрация на сайте "API_yamdb". \n  \n'
-        #             f'Ваш код подтверждения : {confirmation_code} \n \n'
-        #             f'Если Вы не пытались зарегистрироваться - \n'
-        #             f'просто не отвечайте на данное сообщение и \n'
-        #             f'не производите никаких действий',
-        #     from_email=None,
-        #     recipient_list=(user.email,),
-        # )
-        # return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserGetTokenViewSet(CreateViewSet):
@@ -199,47 +160,27 @@ class UserGetTokenViewSet(CreateViewSet):
 
 
 class UserViewSet(viewsets.ModelViewSet):
+    http_method_names = ['get', 'post', 'patch', 'delete']
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (permissions.IsAuthenticated, IsAdmin)
+    permission_classes = (IsAdmin,)
+    lookup_field = 'username'
     filter_backends = (SearchFilter,)
     search_fields = ('username',)
 
     @action(
-        detail=False,
-        methods=['GET', 'PATCH'],
+        methods=['get', 'patch'],
         url_path='me',
         url_name='me',
-        permission_classes=(permissions.IsAuthenticated,),
+        detail=False,
+        permission_classes=[permissions.IsAuthenticated]
     )
     def me(self, request):
-        user = self.request.user
-        if not user.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
         if request.method == 'GET':
-            serializer = UserSerializer(user)
+            serializer = UserSerializer(self.request.user)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        serializer = UserMeSerializer(user, data=request.data, partial=True)
+        serializer = UserSerializer(
+            self.request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @action(
-        detail=False,
-        methods=['GET', 'PATCH', 'DELETE'],
-        url_path=r'(?P<username>[\w.@+-]+)',
-        url_name='user_profile',
-        permission_classes=(IsAdmin,),
-    )
-    def user_profile(self, request, username):
-        user = get_object_or_404(User, username=username)
-        if request.method == 'PATCH':
-            serializer = UserSerializer(user, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        if request.method == 'DELETE':
-            user.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        serializer = UserSerializer(user)
+        serializer.save(role=self.request.user.role)
         return Response(serializer.data, status=status.HTTP_200_OK)
