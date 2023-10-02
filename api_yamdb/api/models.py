@@ -1,70 +1,56 @@
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import RegexValidator
-from django.db import models
-
-
-USER = 'user'
-MODERATOR = 'moderator'
-ADMIN = 'admin'
-
-USER_ROLE = (
-    (USER, 'Пользователь'),
-    (MODERATOR, 'Модератор'),
-    (ADMIN, 'Администратор'),
-)
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models, IntegrityError
 
 
 class User(AbstractUser):
+    ADMIN = 'admin'
+    MODERATOR = 'moderator'
+    USER = 'user'
+    ROLES = [
+        (ADMIN, 'Administrator'),
+        (MODERATOR, 'Moderator'),
+        (USER, 'User'),
+    ]
 
     username = models.CharField(
+        verbose_name='Имя пользователя',
         max_length=150,
-        unique=True,
-        help_text=(
-            'Required. 150 characters or fewer. '
-            'Letters, digits and @/./+/-/_ only.'),
-        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
-        error_messages={
-            'unique': ("A user with that username already exists."),
-        },
-    )
-    email = models.EmailField(
-        max_length=254,
-        verbose_name='email',
+        null=True,
         unique=True
     )
-    first_name = models.CharField(
-        max_length=150,
-        verbose_name='имя',
-        blank=True
+
+    email = models.EmailField(
+        verbose_name='Адрес электронной почты',
+        unique=True,
     )
-    last_name = models.CharField(
-        max_length=150,
-        verbose_name='фамилия',
-        blank=True
-    )
-    bio = models.TextField(
-        verbose_name='биография',
-        blank=True,
-    )
+
     role = models.CharField(
-        max_length=20,
-        verbose_name='роль',
-        choices=USER_ROLE,
-        default=USER[0]
+        verbose_name='Роль',
+        max_length=50,
+        choices=ROLES,
+        default=USER
+    )
+
+    bio = models.TextField(
+        verbose_name='О себе',
+        null=True,
+        blank=True
     )
 
     class Meta:
+        ordering = ['id']
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-        ordering = ('id',)
 
     @property
     def is_moderator(self):
-        return self.role == MODERATOR
+        return self.role == self.MODERATOR
 
     @property
     def is_admin(self):
-        return self.role == ADMIN or self.is_superuser or self.is_staff
+        # return self.role == self.ADMIN
+        return self.role == self.ADMIN or self.is_superuser or self.is_staff
 
-    def __str__(self):
-        return self.username
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
