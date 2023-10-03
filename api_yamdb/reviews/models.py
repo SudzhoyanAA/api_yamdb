@@ -1,7 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
-
-from django.db import models, IntegrityError
+from django.db import IntegrityError, models
 
 
 class User(AbstractUser):
@@ -13,7 +12,8 @@ class User(AbstractUser):
         (MODERATOR, 'Moderator'),
         (USER, 'User'),
     ]
-
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
     email = models.EmailField(
         verbose_name='Адрес электронной почты',
         unique=True,
@@ -48,9 +48,6 @@ class User(AbstractUser):
     @property
     def is_admin(self):
         return self.role == self.ADMIN
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
 
 
 class Category(models.Model):
@@ -93,29 +90,29 @@ class Genre(models.Model):
 
 class Title(models.Model):
     name = models.CharField(
-        verbose_name="Название",
+        verbose_name='Название',
         max_length=256,
     )
     year = models.IntegerField(
-        verbose_name="Год выпуска",
+        verbose_name='Год выпуска',
     )
     description = models.TextField(
-        verbose_name="Описание",
+        verbose_name='Описание',
         blank=True,
         null=True,
     )
     rating = models.IntegerField(
-        verbose_name="Рейтинг",
+        verbose_name='Рейтинг',
         null=True,
         default=None,
     )
     genre = models.ManyToManyField(
         Genre,
-        verbose_name="Жанр",
+        verbose_name='Жанр',
     )
     category = models.ForeignKey(
         Category,
-        verbose_name="Категория",
+        verbose_name='Категория',
         on_delete=models.SET_NULL,
         related_name='titles',
         null=True,
@@ -177,7 +174,7 @@ class Review(models.Model):
     class Meta:
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
-        ordering = ('-pub_date',)
+        ordering = ('pub_date',)
 
     def __str__(self):
         return self.text
@@ -186,8 +183,8 @@ class Review(models.Model):
         existing_reviews = Review.objects.filter(title=self.title,
                                                  author=self.author)
         if self.pk is None and existing_reviews.exists():
-            raise IntegrityError("Отзыв от данного автора для данного"
-                                 "произведения уже существует.")
+            raise IntegrityError('Отзыв от данного автора для данного'
+                                 'произведения уже существует.')
         super().save(*args, **kwargs)
 
 

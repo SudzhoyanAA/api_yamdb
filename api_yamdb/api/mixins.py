@@ -8,3 +8,11 @@ class ListCreateDestroyViewSet(
     viewsets.GenericViewSet,
 ):
     pass
+
+
+class ExcludePutViewSet(viewsets.ModelViewSet):
+    http_method_names = ['get', 'post', 'head', 'options', 'patch', 'delete']
+
+
+class CreateViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    pass
