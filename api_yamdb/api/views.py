@@ -23,7 +23,7 @@ from .serializers import (CategorySerializer, CommentSerializer,
                           UserGetTokenSerializer, UserSerializer,
                           UserSignUpSerializer, UserTokenSerializer)
 
-
+# 1
 class CategoryViewSet(ListCreateDestroyViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
