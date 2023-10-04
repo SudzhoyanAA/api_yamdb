@@ -91,27 +91,6 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ('__all__')
 
 
-class UserRegistrationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('email', 'username')
-
-    def validate(self, data):
-        if data['username'] == 'me':
-            raise serializers.ValidationError(
-                {'Выберите другой username'})
-        return data
-
-
-class TokenSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(required=True)
-    confirmation_code = serializers.CharField(required=True)
-
-    class Meta:
-        model = User
-        fields = ('username', 'confirmation_code')
-
-
 class UserSignUpSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         required=True,
@@ -139,11 +118,6 @@ class UserTokenSerializer(serializers.Serializer):
     confirmation_code = serializers.CharField(required=True)
     username = serializers.CharField(required=True,
                                      max_length=150)
-
-
-class UserGetTokenSerializer(serializers.Serializer):
-    confirmation_code = serializers.CharField(required=True)
-    username = serializers.CharField(required=True)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -175,8 +149,3 @@ class UserSerializer(serializers.ModelSerializer):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError(f'email{value} уже занят')
         return value
-
-
-class UserMeSerializer(UserSerializer):
-    class Meta(UserSerializer.Meta):
-        read_only_fields = ('role',)

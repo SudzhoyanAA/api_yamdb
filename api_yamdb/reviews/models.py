@@ -1,6 +1,10 @@
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, \
+    RegexValidator
 from django.db import IntegrityError, models
+
+REGEX_SIGN = RegexValidator(r'^[\w.@+-]+\Z', 'Поддерживаемые знаки.')
+REGEX_ME = RegexValidator(r'[^m][^e]', 'Имя пользователя не может быть "me".')
 
 
 class User(AbstractUser):
@@ -12,8 +16,6 @@ class User(AbstractUser):
         (MODERATOR, 'Moderator'),
         (USER, 'User'),
     ]
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
     email = models.EmailField(
         verbose_name='Адрес электронной почты',
         unique=True,
@@ -21,8 +23,8 @@ class User(AbstractUser):
     username = models.CharField(
         verbose_name='Имя пользователя',
         max_length=150,
-        null=True,
-        unique=True
+        validators=(REGEX_SIGN, REGEX_ME),
+        null=True
     )
     role = models.CharField(
         verbose_name='Роль',
@@ -32,12 +34,10 @@ class User(AbstractUser):
     )
     bio = models.TextField(
         verbose_name='О себе',
-        null=True,
         blank=True
     )
 
     class Meta:
-        ordering = ['id']
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
@@ -48,6 +48,9 @@ class User(AbstractUser):
     @property
     def is_admin(self):
         return self.role == self.ADMIN
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
 
 
 class Category(models.Model):

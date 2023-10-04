@@ -1,13 +1,17 @@
+import random
+from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
+from string import digits
 
 from django_filters.rest_framework import DjangoFilterBackend
+from django.conf.global_settings import DEFAULT_FROM_EMAIL
 
-from rest_framework import permissions, status
-from rest_framework.decorators import action
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action, api_view
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
@@ -20,8 +24,8 @@ from .permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReadOnlyTitleSerializer,
                           ReviewSerializer, TitleSerializer,
-                          UserGetTokenSerializer, UserSerializer,
-                          UserSignUpSerializer, UserTokenSerializer)
+                          UserSerializer, UserSignUpSerializer,
+                          UserTokenSerializer)
 
 
 class CategoryViewSet(ListCreateDestroyViewSet):
@@ -88,7 +92,43 @@ class CommentViewSet(ExcludePutViewSet):
         serializer.save(author=self.request.user, review=review)
 
 
-class UserSignUpViewSet(CreateViewSet):
+def send_message_to_user(username, recepient_email, confirmation_code):
+    send_mail(
+        subject='Код подтверждения YAMDb',
+        message=f'Здравствуйте, {username} \n\n'
+                f'Вы получили это сообщение, '
+                f'так как на адрес электронной почты: \n'
+                f' {recepient_email}\n'
+                f'происходит регистрация на сайте "API_yamdb". \n  \n'
+                f'Ваш код подтверждения : {confirmation_code} \n \n'
+                f'Если Вы не пытались зарегистрироваться - \n'
+                f'просто не отвечайте на данное сообщение и \n'
+                f'не производите никаких действий',
+        from_email=DEFAULT_FROM_EMAIL,
+        recipient_list=(recepient_email,),
+    )
+
+
+@api_view(['POST'])
+def create_user(request):
+    serializer = UserSignUpSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    confirmation_code = ''.join(random.choices(digits, k=5))
+    serializer.save(confirmation_code=confirmation_code)
+
+    send_mail(
+        subject='Registration from YaMDB',
+        message=f'Your confirmation code is {confirmation_code}',
+        from_email=settings.ADMIN_EMAIL,
+        recipient_list=(request.data['email'],))
+
+    return Response(
+        serializer.data
+    )
+
+
+class UserSignUpViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSignUpSerializer
     permission_classes = (permissions.AllowAny,)
@@ -109,20 +149,7 @@ class UserSignUpViewSet(CreateViewSet):
             )
             return Response(error, status=status.HTTP_400_BAD_REQUEST)
         confirmation_code = default_token_generator.make_token(user)
-        send_mail(
-            subject='Код подтверждения YAMDb',
-            message=f'Здравствуйте, {user.username} \n\n'
-                    f'Вы получили это сообщение, '
-                    f'так как на адрес электронной почты: \n'
-                    f' {user.email}\n'
-                    f'происходит регистрация на сайте "API_yamdb". \n  \n'
-                    f'Ваш код подтверждения : {confirmation_code} \n \n'
-                    f'Если Вы не пытались зарегистрироваться - \n'
-                    f'просто не отвечайте на данное сообщение и \n'
-                    f'не производите никаких действий',
-            from_email=None,
-            recipient_list=(user.email,),
-        )
+        send_message_to_user(user.username, user.email, confirmation_code)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -132,7 +159,7 @@ class UserGetTokenViewSet(CreateViewSet):
     permission_classes = (permissions.AllowAny,)
 
     def create(self, request):
-        serializer = UserGetTokenSerializer(data=request.data)
+        serializer = UserTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = get_object_or_404(
             User, username=serializer.validated_data['username']
@@ -155,11 +182,11 @@ class UserViewSet(ExcludePutViewSet):
     serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
     lookup_field = 'username'
-    filter_backends = (SearchFilter,)
     search_fields = ('username',)
+    filter_backends = (SearchFilter,)
 
     @action(
-        methods=['get', 'patch'],
+        methods=['GET', 'PATCH'],
         url_path='me',
         url_name='me',
         detail=False,
@@ -173,4 +200,24 @@ class UserViewSet(ExcludePutViewSet):
             self.request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save(role=self.request.user.role)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(
+        detail=False,
+        methods=['GET', 'PATCH', 'DELETE'],
+        url_path=r'(?P<username>[\w.@+-]+)',
+        url_name='user_profile',
+        permission_classes=(IsAdmin,),
+    )
+    def users_profile(self, request, username):
+        user = get_object_or_404(User, username=username)
+        if request.method == 'PATCH':
+            serializer = UserSerializer(user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        if request.method == 'DELETE':
+            user.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
