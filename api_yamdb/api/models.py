@@ -26,6 +26,7 @@ class User(AbstractUser):
     )
 
     role = models.CharField(
+<<<<<<< Updated upstream
         verbose_name='Роль',
         max_length=50,
         choices=ROLES,
@@ -36,6 +37,12 @@ class User(AbstractUser):
         verbose_name='О себе',
         null=True,
         blank=True
+=======
+        max_length=20,
+        verbose_name='роль',
+        choices=USER_ROLE,
+        default='user'
+>>>>>>> Stashed changes
     )
 
     class Meta:
