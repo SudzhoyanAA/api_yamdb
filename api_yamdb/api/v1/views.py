@@ -109,25 +109,6 @@ def send_message_to_user(username, recepient_email, confirmation_code):
     )
 
 
-@api_view(['POST'])
-def create_user(request):
-    serializer = UserSignUpSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    confirmation_code = ''.join(random.choices(digits, k=5))
-    serializer.save(confirmation_code=confirmation_code)
-
-    send_mail(
-        subject='Registration from YaMDB',
-        message=f'Your confirmation code is {confirmation_code}',
-        from_email=settings.ADMIN_EMAIL,
-        recipient_list=(request.data['email'],))
-
-    return Response(
-        serializer.data
-    )
-
-
 class UserSignUpViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSignUpSerializer
