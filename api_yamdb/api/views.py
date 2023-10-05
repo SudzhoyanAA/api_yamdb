@@ -3,24 +3,26 @@ from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
+from django.conf.global_settings import DEFAULT_FROM_EMAIL
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from rest_framework import permissions, status
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
-from reviews.models import Category, Genre, Review, Title, User
+from reviews.models import Category, Genre, Review, Title
+from user.models import User
 from .filters import TitlesFilter
 from .mixins import ListCreateDestroyViewSet, ExcludePutViewSet, CreateViewSet
 from .permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
                           IsAdminOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
-                          GenreSerializer, ReadOnlyTitleSerializer,
+                          GenreSerializer, TitleReadSerializer,
                           ReviewSerializer, TitleSerializer,
-                          UserGetTokenSerializer, UserSerializer,
+                          UserSerializer, UserTokenSerializer,
                           UserSignUpSerializer, UserTokenSerializer)
 
 
@@ -53,7 +55,7 @@ class TitleViewSet(ExcludePutViewSet):
 
     def get_serializer_class(self):
         if self.action in ('retrieve', 'list'):
-            return ReadOnlyTitleSerializer
+            return TitleReadSerializer
         return TitleSerializer
 
 
@@ -62,13 +64,11 @@ class ReviewViewSet(ExcludePutViewSet):
     permission_classes = [IsAdminModeratorOwnerOrReadOnly]
 
     def get_queryset(self):
-        title_id = self.kwargs.get('title_id')
-        title = get_object_or_404(Title, id=title_id)
+        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
         return title.reviews.all()
 
     def perform_create(self, serializer):
-        title_id = self.kwargs.get('title_id')
-        title = get_object_or_404(Title, id=title_id)
+        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
         serializer.save(author=self.request.user, title=title)
 
 
@@ -88,7 +88,24 @@ class CommentViewSet(ExcludePutViewSet):
         serializer.save(author=self.request.user, review=review)
 
 
-class UserSignUpViewSet(CreateViewSet):
+def send_message_to_user(username, recepient_email, confirmation_code):
+    send_mail(
+        subject='Код подтверждения YAMDb',
+        message=f'Здравствуйте, {username} \n\n'
+                f'Вы получили это сообщение, '
+                f'так как на адрес электронной почты: \n'
+                f' {recepient_email}\n'
+                f'происходит регистрация на сайте "API_yamdb". \n  \n'
+                f'Ваш код подтверждения : {confirmation_code} \n \n'
+                f'Если Вы не пытались зарегистрироваться - \n'
+                f'просто не отвечайте на данное сообщение и \n'
+                f'не производите никаких действий',
+        from_email=DEFAULT_FROM_EMAIL,
+        recipient_list=(recepient_email,),
+    )
+
+
+class UserSignUpViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSignUpSerializer
     permission_classes = (permissions.AllowAny,)
@@ -109,20 +126,7 @@ class UserSignUpViewSet(CreateViewSet):
             )
             return Response(error, status=status.HTTP_400_BAD_REQUEST)
         confirmation_code = default_token_generator.make_token(user)
-        send_mail(
-            subject='Код подтверждения YAMDb',
-            message=f'Здравствуйте, {user.username} \n\n'
-                    f'Вы получили это сообщение, '
-                    f'так как на адрес электронной почты: \n'
-                    f' {user.email}\n'
-                    f'происходит регистрация на сайте "API_yamdb". \n  \n'
-                    f'Ваш код подтверждения : {confirmation_code} \n \n'
-                    f'Если Вы не пытались зарегистрироваться - \n'
-                    f'просто не отвечайте на данное сообщение и \n'
-                    f'не производите никаких действий',
-            from_email=None,
-            recipient_list=(user.email,),
-        )
+        send_message_to_user(user.username, user.email, confirmation_code)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -132,7 +136,7 @@ class UserGetTokenViewSet(CreateViewSet):
     permission_classes = (permissions.AllowAny,)
 
     def create(self, request):
-        serializer = UserGetTokenSerializer(data=request.data)
+        serializer = UserTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = get_object_or_404(
             User, username=serializer.validated_data['username']
