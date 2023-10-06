@@ -1,11 +1,9 @@
-from django.core.validators import (
-    MaxValueValidator, MinValueValidator
-)
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from .validators import validate_year
 from user.models import User
 from .constants import MAX_NAME_LENGTH
+from .validators import validate_year
 
 
 class Category(models.Model):

@@ -1,7 +1,9 @@
-from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
-
+from django.db import IntegrityError
 from django.core.validators import RegexValidator
+
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+from rest_framework.validators import UniqueTogetherValidator
 
 from reviews.models import Category, Genre, Title, Review, Comment
 from user.models import User
@@ -46,7 +48,7 @@ class TitleReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = ('__all__')
+        fields = '__all__'
 
 
 class GetDefaultTitleId:
@@ -70,7 +72,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ('__all__')
+        fields = '__all__'
         read_only_fields = ('author',)
         validators = [
             UniqueTogetherValidator(
@@ -91,7 +93,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ('__all__')
+        fields = '__all__'
 
 
 class UserSignUpSerializer(serializers.ModelSerializer):
@@ -108,6 +110,15 @@ class UserSignUpSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ('email', 'username')
         model = User
+
+    def create(self, validated_data):
+        try:
+            user = User.objects.get_or_create(**validated_data)[0]
+        except IntegrityError:
+            raise ValidationError(
+                'Отсутствует обязательное поле или оно некоректно',
+            )
+        return user
 
     def validate_username(self, value):
         if value == 'me':
