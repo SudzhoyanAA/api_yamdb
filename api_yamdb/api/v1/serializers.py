@@ -1,7 +1,10 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
+
 from django.core.validators import RegexValidator
 
-from reviews.models import Category, Genre, Title, Review, Comment, User
+from reviews.models import Category, Genre, Title, Review, Comment
+from user.models import User
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -37,10 +40,7 @@ class TitleSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ReadOnlyTitleSerializer(serializers.ModelSerializer):
-    rating = serializers.IntegerField(
-        source='reviews__score__avg', read_only=True
-    )
+class TitleReadSerializer(serializers.ModelSerializer):
     genre = GenreSerializer(many=True)
     category = CategorySerializer()
 
@@ -49,33 +49,36 @@ class ReadOnlyTitleSerializer(serializers.ModelSerializer):
         fields = ('__all__')
 
 
+class GetDefaultTitleId:
+    requires_context = True
+
+    def __call__(self, serializer_field):
+        return (serializer_field.context['request']
+                .parser_context['kwargs']['title_id'])
+
+
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username', read_only=True,
+        default=serializers.CurrentUserDefault(),
     )
     title = serializers.SlugRelatedField(
         slug_field='name',
         read_only=True,
+        default=GetDefaultTitleId()
     )
 
     class Meta:
         model = Review
         fields = ('__all__')
-
         read_only_fields = ('author',)
-
-    def validate(self, data):
-        request = self.context.get('request')
-        if request.method == 'POST':
-            review = Review.objects.filter(
-                title=self.context['view'].kwargs.get('title_id'),
-                author=self.context['request'].user
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Review.objects.all(),
+                fields=('title', 'author'),
+                message='Нельзя повторно оценить произведение.'
             )
-            if review.exists():
-                raise serializers.ValidationError(
-                    "Вы уже добавили отзыв"
-                )
-        return data
+        ]
 
 
 class CommentSerializer(serializers.ModelSerializer):

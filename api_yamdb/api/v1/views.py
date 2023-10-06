@@ -1,31 +1,29 @@
-import random
-from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
-from string import digits
-
-from django_filters.rest_framework import DjangoFilterBackend
 from django.conf.global_settings import DEFAULT_FROM_EMAIL
 
+from django_filters.rest_framework import DjangoFilterBackend
+
 from rest_framework import permissions, status, viewsets
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
-from reviews.models import Category, Genre, Review, Title, User
+from reviews.models import Category, Genre, Review, Title
+from user.models import User
 from .filters import TitlesFilter
 from .mixins import ListCreateDestroyViewSet, ExcludePutViewSet, CreateViewSet
 from .permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
                           IsAdminOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
-                          GenreSerializer, ReadOnlyTitleSerializer,
+                          GenreSerializer, TitleReadSerializer,
                           ReviewSerializer, TitleSerializer,
-                          UserSerializer, UserSignUpSerializer,
-                          UserTokenSerializer)
+                          UserSerializer, UserTokenSerializer,
+                          UserSignUpSerializer, UserTokenSerializer)
 
 
 class CategoryViewSet(ListCreateDestroyViewSet):
@@ -57,7 +55,7 @@ class TitleViewSet(ExcludePutViewSet):
 
     def get_serializer_class(self):
         if self.action in ('retrieve', 'list'):
-            return ReadOnlyTitleSerializer
+            return TitleReadSerializer
         return TitleSerializer
 
 
@@ -66,13 +64,11 @@ class ReviewViewSet(ExcludePutViewSet):
     permission_classes = [IsAdminModeratorOwnerOrReadOnly]
 
     def get_queryset(self):
-        title_id = self.kwargs.get('title_id')
-        title = get_object_or_404(Title, id=title_id)
+        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
         return title.reviews.all()
 
     def perform_create(self, serializer):
-        title_id = self.kwargs.get('title_id')
-        title = get_object_or_404(Title, id=title_id)
+        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
         serializer.save(author=self.request.user, title=title)
 
 
@@ -163,11 +159,11 @@ class UserViewSet(ExcludePutViewSet):
     serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
     lookup_field = 'username'
-    search_fields = ('username',)
     filter_backends = (SearchFilter,)
+    search_fields = ('username',)
 
     @action(
-        methods=['GET', 'PATCH'],
+        methods=['get', 'patch'],
         url_path='me',
         url_name='me',
         detail=False,
@@ -181,24 +177,4 @@ class UserViewSet(ExcludePutViewSet):
             self.request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save(role=self.request.user.role)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @action(
-        detail=False,
-        methods=['GET', 'PATCH', 'DELETE'],
-        url_path=r'(?P<username>[\w.@+-]+)',
-        url_name='user_profile',
-        permission_classes=(IsAdmin,),
-    )
-    def users_profile(self, request, username):
-        user = get_object_or_404(User, username=username)
-        if request.method == 'PATCH':
-            serializer = UserSerializer(user, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        if request.method == 'DELETE':
-            user.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
