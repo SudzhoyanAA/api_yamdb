@@ -45,9 +45,9 @@ class GenreViewSet(ListCreateDestroyViewSet):
 
 
 class TitleViewSet(ExcludePutViewSet):
-    queryset = Title.objects.all().annotate(
-        Avg('reviews__score')
-    ).order_by('name')
+    queryset = Title.objects.order_by('id').annotate(
+        rating=Avg('reviews__score')
+    )
     serializer_class = TitleSerializer
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = [DjangoFilterBackend]
