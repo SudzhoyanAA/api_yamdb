@@ -1,22 +1,23 @@
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.db import IntegrityError
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django.conf.global_settings import DEFAULT_FROM_EMAIL
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from rest_framework import permissions, status, viewsets
+from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
 
 from reviews.models import Category, Genre, Review, Title
 from user.models import User
 from .filters import TitlesFilter
-from .mixins import ListCreateDestroyViewSet, ExcludePutViewSet, CreateViewSet
+from .mixins import ListCreateDestroyViewSet, ExcludePutViewSet
 from .permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
                           IsAdminOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
@@ -33,6 +34,13 @@ class CategoryViewSet(ListCreateDestroyViewSet):
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
     lookup_field = 'slug'
+# в Django REST framework (DRF) используется для определения поля, которое
+# будет использоваться для поиска объектов в представлениях. Это поле
+# позволяет задать, какое поле модели будет использоваться для поиска
+# объектов, когда вы выполняете запросы на просмотр (retrieve), обновление
+# (update), частичное обновление (partial update), удаление (delete) и
+# другие действия на основе идентификационного значения.
+# Поискал альтернативу, но не нашел. И почему это костыль?
 
 
 class GenreViewSet(ListCreateDestroyViewSet):
@@ -105,53 +113,38 @@ def send_message_to_user(username, recepient_email, confirmation_code):
     )
 
 
-class UserSignUpViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSignUpSerializer
+class UserSignUpAPIView(APIView):
     permission_classes = (permissions.AllowAny,)
 
-    def create(self, request):
+    def post(self, request):
         serializer = UserSignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        username = serializer.validated_data.get('username')
-        try:
-            user, created = User.objects.get_or_create(
-                **serializer.validated_data
-            )
-        except IntegrityError:
-            error = (
-                {'username': ['Это имя пользователя уже занято.']}
-                if User.objects.filter(username=username).exists()
-                else {'email': ['Этот почтовый адрес уже занят.']}
-            )
-            return Response(error, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save()
+        user = User.objects.get(email=request.data["email"])
         confirmation_code = default_token_generator.make_token(user)
         send_message_to_user(user.username, user.email, confirmation_code)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data)
 
 
-class UserGetTokenViewSet(CreateViewSet):
+class UserGetTokenAPIView(APIView):
     queryset = User.objects.all()
-    serializer_class = UserTokenSerializer
     permission_classes = (permissions.AllowAny,)
 
-    def create(self, request):
+    def post(self, request):
         serializer = UserTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = get_object_or_404(
-            User, username=serializer.validated_data['username']
+            User,
+            username=request.data['username']
         )
         if default_token_generator.check_token(
-                user, serializer.validated_data['confirmation_code']
+                user, serializer.data['confirmation_code']
         ):
             token = AccessToken.for_user(user)
             return Response(
                 {'token': str(token)}, status=status.HTTP_200_OK
             )
-        return Response(
-            {'confirmation_code': 'Неверный код подтверждения'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        raise ValidationError("Неверный код")
 
 
 class UserViewSet(ExcludePutViewSet):

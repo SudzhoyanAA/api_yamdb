@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
+from rest_framework.exceptions import ValidationError
 
 from django.core.validators import RegexValidator
+from django.db import IntegrityError
 
 from reviews.models import Category, Genre, Title, Review, Comment
 from user.models import User
@@ -111,6 +113,15 @@ class UserSignUpSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ('email', 'username')
         model = User
+
+    def create(self, validated_data):
+        try:
+            user = User.objects.get_or_create(**validated_data)[0]
+        except IntegrityError:
+            raise ValidationError(
+                'Отсутствует обязательное поле или оно некоректно',
+            )
+        return user
 
     def validate_username(self, value):
         if value == 'me':

@@ -5,7 +5,7 @@ from django.db import models
 
 from .validators import validate_year
 from user.models import User
-from .constants import MAX_NAME_LENGTH
+from .constants import MAX_NAME_LENGTH, MAX_LENGHT
 
 
 class Category(models.Model):
@@ -24,7 +24,9 @@ class Category(models.Model):
         ordering = ('name',)
 
     def __str__(self):
-        return self.name
+        return self.name[:MAX_LENGHT] + (
+            '...' if len(self.name) > MAX_LENGHT else ''
+        )
 
 
 class Genre(models.Model):
@@ -43,7 +45,9 @@ class Genre(models.Model):
         ordering = ('name',)
 
     def __str__(self):
-        return self.name
+        return self.name[:MAX_LENGHT] + (
+            '...' if len(self.name) > MAX_LENGHT else ''
+        )
 
 
 class Title(models.Model):
@@ -78,7 +82,9 @@ class Title(models.Model):
         ordering = ('name',)
 
     def __str__(self):
-        return self.name
+        return self.name[:MAX_LENGHT] + (
+            '...' if len(self.name) > MAX_LENGHT else ''
+        )
 
 
 class GenreTitle(models.Model):
@@ -137,7 +143,9 @@ class Review(models.Model):
         ]
 
     def __str__(self):
-        return self.text
+        return self.text[:MAX_LENGHT] + (
+            '...' if len(self.text) > MAX_LENGHT else ''
+        )
 
 
 class Comment(models.Model):
@@ -164,7 +172,9 @@ class Comment(models.Model):
     class Meta:
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
-        ordering = ('id',)
+        ordering = ('pub_date',)
 
     def __str__(self):
-        return self.text
+        return self.text[:MAX_LENGHT] + (
+            '...' if len(self.text) > MAX_LENGHT else ''
+        )

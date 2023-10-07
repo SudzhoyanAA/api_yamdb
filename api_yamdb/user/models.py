@@ -1,6 +1,7 @@
+from django import forms
 from django.db import models
-from django.core.validators import RegexValidator
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import RegexValidator
 
 from reviews.constants import MAX_ROLE_LENGHT, MAX_USERNAME_LENGHT
 
@@ -42,6 +43,15 @@ class User(AbstractUser):
         ordering = ('username',)
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+
+    def clean(self):
+        super().clean()
+        username = self.cleaned_data.get('username')
+        if username == 'me':
+            raise forms.ValidationError(
+                'Использование имени "me" запрещено'
+            )
+        raise self.cleaned_data
 
     @property
     def is_moderator(self):
