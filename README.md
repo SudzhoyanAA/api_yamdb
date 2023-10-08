@@ -6,6 +6,13 @@
 Пользователи могут оставлять комментарии к отзывам.
 
 
+## Стек технологий
+
+- Django v3.2 - используемый фреймворк
+- Django REST Framework v.3.12.4 - библиотека для работы с REST API
+- Simple JWT(djangorestframework-simplejwt v.4.7.2) - работа с JWT-токеном
+- django-filter v2.4.0 - библиотека для работы с фильтрами в Django
+
 ### Как запустить проект:
 
 Клонировать репозиторий и перейти в него в командной строке:
@@ -21,11 +28,13 @@ cd api_yamdb
 Cоздать и активировать виртуальное окружение:
 
 ```
-py -m venv env
+Linux/macOS: python3 -m venv venv;
+Windows: python -m venv venv или py -3 -m venv venv
 ```
 
 ```
-source venv/Scripts/Activate
+Linux/macOS: source venv/bin/activate;
+Windows: source venv/Scripts/activate.
 ```
 
 Установить зависимости из файла requirements.txt:
@@ -43,7 +52,8 @@ py manage.py migrate
 Запустить проект:
 
 ```
-py manage.py runserver
+Windows: python manage.py runserver
+Linux/macOS: python3 manage.py runserver
 ```
 
 
@@ -82,3 +92,12 @@ Content-Type: application/json
 	"username": "string"
 }
 ```
+
+
+
+### Авторство
+
+Проект выполнен группой №5, состоящей из:
+Ольги Степановой, которая работала с аунтентификацией и пользователями
+Альберта Суджояна, который работал с категориями, жанрами и произведениями
+Матвея Сухих, который работал с отзывами и комментариями.

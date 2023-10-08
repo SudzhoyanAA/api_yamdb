@@ -1,19 +1,21 @@
 from django.contrib.auth.tokens import default_token_generator
-from django.conf.global_settings import DEFAULT_FROM_EMAIL
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
+from django.conf.global_settings import DEFAULT_FROM_EMAIL
 
 from django_filters.rest_framework import DjangoFilterBackend
+
 from rest_framework import permissions, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
 
+from reviews.models import Category, Genre, Review, Title
+from user.models import User
 from .filters import TitlesFilter
 from .mixins import ListCreateDestroyViewSet, ExcludePutViewSet
 from .permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
@@ -21,10 +23,8 @@ from .permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, TitleReadSerializer,
                           ReviewSerializer, TitleSerializer,
-                          UserSerializer, UserSignUpSerializer,
-                          UserTokenSerializer)
-from reviews.models import Category, Genre, Review, Title
-from user.models import User
+                          UserSerializer, UserTokenSerializer,
+                          UserSignUpSerializer, UserTokenSerializer)
 
 
 class CategoryViewSet(ListCreateDestroyViewSet):
@@ -34,6 +34,13 @@ class CategoryViewSet(ListCreateDestroyViewSet):
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
     lookup_field = 'slug'
+# в Django REST framework (DRF) используется для определения поля, которое
+# будет использоваться для поиска объектов в представлениях. Это поле
+# позволяет задать, какое поле модели будет использоваться для поиска
+# объектов, когда вы выполняете запросы на просмотр (retrieve), обновление
+# (update), частичное обновление (partial update), удаление (delete) и
+# другие действия на основе идентификационного значения.
+# Поискал альтернативу, но не нашел. И почему это костыль?
 
 
 class GenreViewSet(ListCreateDestroyViewSet):
@@ -46,9 +53,9 @@ class GenreViewSet(ListCreateDestroyViewSet):
 
 
 class TitleViewSet(ExcludePutViewSet):
-    queryset = Title.objects.all().annotate(
-        Avg('reviews__score')
-    ).order_by('name')
+    queryset = Title.objects.order_by('id').annotate(
+        rating=Avg('reviews__score')
+    )
     serializer_class = TitleSerializer
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = [DjangoFilterBackend]
@@ -107,7 +114,7 @@ def send_message_to_user(username, recepient_email, confirmation_code):
 
 
 class UserSignUpAPIView(APIView):
-    permission_classes = (AllowAny,)
+    permission_classes = (permissions.AllowAny,)
 
     def post(self, request):
         serializer = UserSignUpSerializer(data=request.data)
