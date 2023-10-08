@@ -34,13 +34,6 @@ class CategoryViewSet(ListCreateDestroyViewSet):
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
     lookup_field = 'slug'
-# в Django REST framework (DRF) используется для определения поля, которое
-# будет использоваться для поиска объектов в представлениях. Это поле
-# позволяет задать, какое поле модели будет использоваться для поиска
-# объектов, когда вы выполняете запросы на просмотр (retrieve), обновление
-# (update), частичное обновление (partial update), удаление (delete) и
-# другие действия на основе идентификационного значения.
-# Поискал альтернативу, но не нашел. И почему это костыль?
 
 
 class GenreViewSet(ListCreateDestroyViewSet):
