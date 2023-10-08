@@ -130,12 +130,6 @@ class UserTokenSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(
-        required=True,
-        max_length=150,
-        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
-    )
-    email = serializers.EmailField(required=True, max_length=254)
 
     class Meta:
         model = User
