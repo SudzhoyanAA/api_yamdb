@@ -2,10 +2,12 @@ from django.core.validators import (
     MaxValueValidator, MinValueValidator
 )
 from django.db import models
+from django.contrib.auth import get_user_model
 
 from .validators import validate_year
-from user.models import User
-from .constants import MAX_NAME_LENGTH, MAX_LENGHT
+from api_yamdb.constants import MAX_NAME_LENGTH, MAX_LENGHT
+
+User = get_user_model()
 
 
 class Category(models.Model):
@@ -55,7 +57,7 @@ class Title(models.Model):
         verbose_name='Название',
         max_length=MAX_NAME_LENGTH,
     )
-    year = models.IntegerField(
+    year = models.PositiveSmallIntegerField(
         verbose_name='Год выпуска',
         validators=[validate_year]
     )
@@ -85,24 +87,6 @@ class Title(models.Model):
         return self.name[:MAX_LENGHT] + (
             '...' if len(self.name) > MAX_LENGHT else ''
         )
-
-
-class GenreTitle(models.Model):
-    title = models.ForeignKey(
-        Title,
-        verbose_name='Произведение',
-        on_delete=models.CASCADE)
-    genre = models.ForeignKey(
-        Genre,
-        verbose_name='Жанр',
-        on_delete=models.CASCADE)
-
-    class Meta:
-        verbose_name = 'Произведение и жанр'
-        verbose_name_plural = 'Произведения и жанры'
-
-    def __str__(self):
-        return f'{self.title}, жанр - {self.genre}'
 
 
 class Review(models.Model):

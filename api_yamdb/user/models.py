@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.contrib.auth.validators import UnicodeUsernameValidator
 
-from reviews.constants import MAX_ROLE_LENGHT, MAX_USERNAME_LENGHT
+from api_yamdb.constants import MAX_ROLE_LENGHT, MAX_USERNAME_LENGHT
 
 
 class User(AbstractUser):

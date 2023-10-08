@@ -1,9 +1,9 @@
-from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
-from rest_framework.exceptions import ValidationError
-
 from django.core.validators import RegexValidator
 from django.db import IntegrityError
+
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+from rest_framework.validators import UniqueTogetherValidator
 
 from reviews.models import Category, Genre, Title, Review, Comment
 from user.models import User
@@ -13,20 +13,12 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         exclude = ('id',)
-        lookup_field = 'slug'
-        extra_kwargs = {
-            'url': {'lookup_field': 'slug'}
-        }
 
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
         exclude = ('id',)
-        lookup_field = 'slug'
-        extra_kwargs = {
-            'url': {'lookup_field': 'slug'}
-        }
 
 
 class TitleSerializer(serializers.ModelSerializer):
