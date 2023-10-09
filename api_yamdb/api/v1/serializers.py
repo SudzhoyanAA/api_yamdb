@@ -1,12 +1,14 @@
 from django.core.validators import RegexValidator
 from django.db import IntegrityError
+from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 
 from reviews.models import Category, Genre, Title, Review, Comment
-from user.models import User
+
+User = get_user_model()
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -59,6 +61,8 @@ class ReviewSerializer(serializers.ModelSerializer):
         slug_field='username', read_only=True,
         default=serializers.CurrentUserDefault(),
     )
+# если убрать это поле то падают тесты о корректности данных
+# (так же и с коментами).
     title = serializers.SlugRelatedField(
         slug_field='name',
         read_only=True,
@@ -116,7 +120,7 @@ class UserSignUpSerializer(serializers.ModelSerializer):
         return user
 
     def validate_username(self, value):
-        if value == 'me':
+        if value.lower() == 'me':
             raise serializers.ValidationError(
                 'Использование данного имени запрещено!'
             )
@@ -141,11 +145,15 @@ class UserSerializer(serializers.ModelSerializer):
             'bio',
             'role'
         )
+# Всю эту валидацию можно удалить? тесты не ругаются если их убрать)
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
+            raise ValidationError('Имя пользователя уже занято')
+        if value.lower() == 'me':
             raise serializers.ValidationError(
-                f'Имя{value} уже занято')
+                'Использование данного имени запрещено!'
+            )
         return value
 
     def validate_email(self, value):

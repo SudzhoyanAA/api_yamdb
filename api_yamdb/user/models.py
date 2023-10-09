@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.core.exceptions import ValidationError
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.exceptions import ValidationError
 
 from api_yamdb.constants import MAX_ROLE_LENGHT, MAX_USERNAME_LENGHT
 
@@ -50,12 +50,25 @@ class User(AbstractUser):
 
     def clean(self):
         super().clean()
-        username = self.cleaned_data.get('username')
-        if username == 'me':
-            raise ValidationError(
-                'Использование имени "me" запрещено'
-            )
-        raise self.cleaned_data
+
+        # Проводим валидацию юзернейма
+        username_validator = UnicodeUsernameValidator()
+        try:
+            username_validator(self.username)
+        except ValidationError as e:
+            raise ValidationError({'username': e.messages})
+
+        # Валидация на "me"
+        if self.username.lower() == 'me':
+            raise ValidationError({'username': ['Нельзя использовать "me" в качестве имени пользователя.']})
+
+        # Проверка на уникальность имени пользователя
+        if User.objects.filter(username=self.username).exclude(pk=self.pk).exists():
+            raise ValidationError({'username': ['Имя пользователя уже занято']})
+
+        # Проверка на уникальность email
+        if User.objects.filter(email=self.email).exclude(pk=self.pk).exists():
+            raise ValidationError({'email': [f'Email {self.email} уже занят']})
 
     @property
     def is_moderator(self):
