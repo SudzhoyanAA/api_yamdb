@@ -99,6 +99,8 @@ class UserSignUpAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         user = User.objects.get(email=request.data["email"])
+        # user, _ = User.objects.get_or_create(**serializer.validated_data)
+
         confirmation_code = default_token_generator.make_token(user)
         send_message_to_user(user.username, user.email, confirmation_code)
         return Response(serializer.data)

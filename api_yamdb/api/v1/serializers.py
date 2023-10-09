@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 
+from api_yamdb.constants import MAX_USERNAME_LENGHT, MAX_EMAIL_LENGHT
 from reviews.models import Category, Genre, Title, Review, Comment
 
 User = get_user_model()
@@ -45,7 +46,7 @@ class TitleReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = ('__all__')
+        fields = '__all__'
 
 
 class GetDefaultTitleId:
@@ -71,7 +72,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ('__all__')
+        fields = '__all__'
         read_only_fields = ('author',)
         validators = [
             UniqueTogetherValidator(
@@ -92,23 +93,40 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ('__all__')
+        fields = '__all__'
 
 
 class UserSignUpSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         required=True,
-        max_length=150,
+        max_length=MAX_USERNAME_LENGHT,
         validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')]
     )
     email = serializers.EmailField(
         required=True,
-        max_length=254,
+        max_length=MAX_EMAIL_LENGHT,
     )
 
     class Meta:
-        fields = ('email', 'username')
         model = User
+        fields = ['email', 'username']
+
+    # def validate(self, data):
+    #     """Запрещает пользователям присваивать себе имя me
+    #     и использовать повторные username и email."""
+    #     if data.get('username') == 'me':
+    #         raise serializers.ValidationError(
+    #             'Использовать имя me запрещено'
+    #         )
+    #     if User.objects.filter(username=data.get('username')):
+    #         raise serializers.ValidationError(
+    #             'Пользователь с таким username уже существует'
+    #         )
+    #     if User.objects.filter(email=data.get('email')):
+    #         raise serializers.ValidationError(
+    #             'Пользователь с таким email уже существует'
+    #         )
+    #     return data
 
     def create(self, validated_data):
         try:
@@ -130,7 +148,7 @@ class UserSignUpSerializer(serializers.ModelSerializer):
 class UserTokenSerializer(serializers.Serializer):
     confirmation_code = serializers.CharField(required=True)
     username = serializers.CharField(required=True,
-                                     max_length=150)
+                                     max_length=MAX_USERNAME_LENGHT)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -145,18 +163,3 @@ class UserSerializer(serializers.ModelSerializer):
             'bio',
             'role'
         )
-# Всю эту валидацию можно удалить? тесты не ругаются если их убрать)
-
-    def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
-            raise ValidationError('Имя пользователя уже занято')
-        if value.lower() == 'me':
-            raise serializers.ValidationError(
-                'Использование данного имени запрещено!'
-            )
-        return value
-
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError(f'email{value} уже занят')
-        return value

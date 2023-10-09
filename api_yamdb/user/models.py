@@ -1,9 +1,11 @@
+from django.core.validators import RegexValidator
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.exceptions import ValidationError
 
-from api_yamdb.constants import MAX_ROLE_LENGHT, MAX_USERNAME_LENGHT
+from api_yamdb.constants import MAX_ROLE_LENGHT, MAX_USERNAME_LENGHT, \
+    MAX_EMAIL_LENGHT
 
 
 class User(AbstractUser):
@@ -19,6 +21,12 @@ class User(AbstractUser):
         verbose_name='Адрес электронной почты',
         unique=True,
     )
+    # email = models.EmailField(
+    #     verbose_name='Адрес электронной почты',
+    #     unique=True,
+    #     # required=True,
+    #     max_length=MAX_EMAIL_LENGHT,
+    # )
     username_validator = UnicodeUsernameValidator()
     username = models.CharField(
         verbose_name=('Имя пользователя'),
@@ -29,6 +37,16 @@ class User(AbstractUser):
             'unique': ('Пользователь с таким именем уже существует.'),
         },
     )
+    # username = models.CharField(
+    #     verbose_name=('Имя пользователя'),
+    #     max_length=MAX_USERNAME_LENGHT,
+    #     unique=True,
+    #     # validators=[username_validator],
+    #     validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
+    #     error_messages={
+    #         'unique': ('Пользователь с таким именем уже существует.'),
+    #     },
+    # )
     role = models.CharField(
         verbose_name='Роль',
         max_length=MAX_ROLE_LENGHT,
