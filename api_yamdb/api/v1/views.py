@@ -93,12 +93,13 @@ class CommentViewSet(ExcludePutViewSet):
 
 class UserSignUpAPIView(APIView):
     permission_classes = (permissions.AllowAny,)
+    queryset = User.objects.all()
 
-    def post(self, request):
-        serializer = UserSignUpSerializer(data=request.data)
+    def post(self, queryset):
+        serializer = UserSignUpSerializer(data=queryset.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        user = User.objects.get(email=request.data["email"])
+        user = User.objects.get(email=queryset.data["email"])
         confirmation_code = default_token_generator.make_token(user)
         send_message_to_user(user.username, user.email, confirmation_code)
         return Response(serializer.data)
@@ -111,14 +112,11 @@ class UserGetTokenAPIView(APIView):
     def post(self, request):
         serializer = UserTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = get_object_or_404(
-            User,
-            username=serializer.validated_data["username"]
-        )
+        username = serializer.validated_data["username"]
         if default_token_generator.check_token(
-                user, serializer.data['confirmation_code']
+                username, serializer.data['confirmation_code']
         ):
-            token = AccessToken.for_user(user)
+            token = AccessToken.for_user(username)
             return Response(
                 {'token': str(token)}, status=status.HTTP_200_OK
             )

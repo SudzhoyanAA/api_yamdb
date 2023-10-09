@@ -1,11 +1,12 @@
+from django.contrib.auth import get_user_model
 from django.core.validators import RegexValidator
 from django.db import IntegrityError
-from django.contrib.auth import get_user_model
 
-from rest_framework import serializers
+from rest_framework import serializers, exceptions
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 
+from api_yamdb.constants import MAX_USERNAME_LENGHT, MAX_EMAIL_LENGTH
 from reviews.models import Category, Genre, Title, Review, Comment
 
 User = get_user_model()
@@ -98,17 +99,18 @@ class CommentSerializer(serializers.ModelSerializer):
 class UserSignUpSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         required=True,
-        max_length=150,
+        max_length=MAX_USERNAME_LENGHT,
         validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')]
+        # Если убрать падают тесты
     )
     email = serializers.EmailField(
         required=True,
-        max_length=254,
+        max_length=MAX_EMAIL_LENGTH,
     )
 
     class Meta:
-        fields = ('email', 'username')
         model = User
+        fields = ['email', 'username']
 
     def create(self, validated_data):
         try:
@@ -118,6 +120,7 @@ class UserSignUpSerializer(serializers.ModelSerializer):
                 'Отсутствует обязательное поле или оно некоректно',
             )
         return user
+# Если убрать эту валидацию, то падают тесты
 
     def validate_username(self, value):
         if value.lower() == 'me':
@@ -130,11 +133,22 @@ class UserSignUpSerializer(serializers.ModelSerializer):
 class UserTokenSerializer(serializers.Serializer):
     confirmation_code = serializers.CharField(required=True)
     username = serializers.CharField(required=True,
-                                     max_length=150)
+                                     max_length=MAX_USERNAME_LENGHT)
+
+    def validate_username(self, value):
+        if not User.objects.filter(username=value).exists():
+            raise exceptions.NotFound('Указанное имя не найдено')
+        return value
+
+    class Meta:
+        model = User
+        fields = (
+            'username',
+            'confirmation_code'
+        )
 
 
 class UserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
         fields = (
@@ -145,18 +159,3 @@ class UserSerializer(serializers.ModelSerializer):
             'bio',
             'role'
         )
-# Всю эту валидацию можно удалить? тесты не ругаются если их убрать)
-
-    def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
-            raise ValidationError('Имя пользователя уже занято')
-        if value.lower() == 'me':
-            raise serializers.ValidationError(
-                'Использование данного имени запрещено!'
-            )
-        return value
-
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError(f'email{value} уже занят')
-        return value

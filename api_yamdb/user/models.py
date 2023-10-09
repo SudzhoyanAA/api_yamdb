@@ -1,9 +1,12 @@
-from django.db import models
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
+from django.db import models
 
-from api_yamdb.constants import MAX_ROLE_LENGHT, MAX_USERNAME_LENGHT
+from api_yamdb.constants import (
+    MAX_EMAIL_LENGTH, MAX_ROLE_LENGHT, MAX_USERNAME_LENGHT
+)
 
 
 class User(AbstractUser):
@@ -17,16 +20,17 @@ class User(AbstractUser):
     ]
     email = models.EmailField(
         verbose_name='Адрес электронной почты',
+        max_length=MAX_EMAIL_LENGTH,
         unique=True,
     )
     username_validator = UnicodeUsernameValidator()
     username = models.CharField(
-        verbose_name=('Имя пользователя'),
+        verbose_name='Имя пользователя',
         max_length=MAX_USERNAME_LENGHT,
+        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
         unique=True,
-        validators=[username_validator],
         error_messages={
-            'unique': ('Пользователь с таким именем уже существует.'),
+            'unique': 'Пользователь с таким именем уже существует.',
         },
     )
     role = models.CharField(
@@ -51,20 +55,23 @@ class User(AbstractUser):
     def clean(self):
         super().clean()
 
-        # Проводим валидацию юзернейма
         username_validator = UnicodeUsernameValidator()
         try:
             username_validator(self.username)
         except ValidationError as e:
             raise ValidationError({'username': e.messages})
 
-        # Валидация на "me"
         if self.username.lower() == 'me':
-            raise ValidationError({'username': ['Нельзя использовать "me" в качестве имени пользователя.']})
+            raise ValidationError({'username': ['Нельзя использовать "me" в '
+                                                'качестве имени '
+                                                'пользователя.']})
 
-        # Проверка на уникальность имени пользователя
-        if User.objects.filter(username=self.username).exclude(pk=self.pk).exists():
-            raise ValidationError({'username': ['Имя пользователя уже занято']})
+        if User.objects.filter(username=self.username).exclude(
+            pk=self.pk
+        ).exists():
+            raise ValidationError(
+                {'username': ['Имя пользователя уже занято']}
+            )
 
         # Проверка на уникальность email
         if User.objects.filter(email=self.email).exclude(pk=self.pk).exists():
