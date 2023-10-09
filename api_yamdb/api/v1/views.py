@@ -1,6 +1,7 @@
 from django.contrib.auth.tokens import default_token_generator
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
 
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -10,10 +11,8 @@ from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.views import APIView
-from rest_framework.exceptions import ValidationError
 
 from reviews.models import Category, Genre, Review, Title
-from user.models import User
 from .filters import TitlesFilter
 from .mixins import ListCreateDestroyViewSet, ExcludePutViewSet
 from .permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
@@ -24,6 +23,8 @@ from .serializers import (CategorySerializer, CommentSerializer,
                           UserSerializer, UserTokenSerializer,
                           UserSignUpSerializer, UserTokenSerializer)
 from .utils import send_message_to_user
+
+User = get_user_model()
 
 
 class CategoryViewSet(ListCreateDestroyViewSet):
@@ -68,8 +69,10 @@ class ReviewViewSet(ExcludePutViewSet):
         return title.reviews.all()
 
     def perform_create(self, serializer):
-        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
-        serializer.save(author=self.request.user, title=title)
+        serializer.save(
+            author=self.request.user,
+            title=get_object_or_404(Title, id=self.kwargs.get('title_id'))
+        )
 
 
 class CommentViewSet(ExcludePutViewSet):
@@ -110,7 +113,7 @@ class UserGetTokenAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         user = get_object_or_404(
             User,
-            username=request.data['username']
+            username=serializer.validated_data["username"]
         )
         if default_token_generator.check_token(
                 user, serializer.data['confirmation_code']
@@ -119,7 +122,7 @@ class UserGetTokenAPIView(APIView):
             return Response(
                 {'token': str(token)}, status=status.HTTP_200_OK
             )
-        raise ValidationError("Неверный код")
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserViewSet(ExcludePutViewSet):
@@ -131,18 +134,25 @@ class UserViewSet(ExcludePutViewSet):
     search_fields = ('username',)
 
     @action(
-        methods=['get', 'patch'],
+        methods=['get'],
         url_path='me',
         url_name='me',
         detail=False,
         permission_classes=[permissions.IsAuthenticated]
     )
     def me(self, request):
-        if request.method == 'GET':
-            serializer = UserSerializer(self.request.user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
         serializer = UserSerializer(
-            self.request.user, data=request.data, partial=True)
+            self.request.user
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @me.mapping.patch
+    def me2(self, request):
+        serializer = UserSerializer(
+            self.request.user,
+            data=request.data,
+            partial=True
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save(role=self.request.user.role)
         return Response(serializer.data, status=status.HTTP_200_OK)
