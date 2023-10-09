@@ -120,7 +120,11 @@ class UserGetTokenAPIView(APIView):
             return Response(
                 {'token': str(token)}, status=status.HTTP_200_OK
             )
-        raise ValidationError("Неверный код")
+
+        error = {
+            'confirmation_code': ['Неверный код!']
+        }
+        return Response(error, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserViewSet(viewsets.ModelViewSet):
