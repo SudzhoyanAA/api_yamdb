@@ -96,7 +96,7 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class UserSignUpSerializer(serializers.ModelSerializer):
+class UserSignUpSerializer(serializers.Serializer):
     username = serializers.CharField(
         required=True,
         max_length=MAX_USERNAME_LENGTH,
@@ -116,7 +116,7 @@ class UserSignUpSerializer(serializers.ModelSerializer):
             user = User.objects.get_or_create(**validated_data)[0]
         except IntegrityError:
             raise ValidationError(
-                'Отсутствует обязательное поле или оно некоректно',
+                'Отсутствует обязательное поле или оно некорректно',
             )
         return user
 

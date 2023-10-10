@@ -26,7 +26,7 @@ class User(AbstractUser):
     username = models.CharField(
         verbose_name='Имя пользователя',
         max_length=MAX_USERNAME_LENGTH,
-        validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')],
+        validators=[username_validator],
         unique=True,
         error_messages={
             'unique': 'Пользователь с таким именем уже существует.',
@@ -50,6 +50,15 @@ class User(AbstractUser):
         ordering = ('username',)
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+
+    def clean(self):
+        # Вызов родительского метода clean.
+        super().clean()
+        username = self.cleaned_data['username']
+        if self.username.lower() == 'me':
+            raise ValidationError({'username': ['Нельзя использовать "me" в '
+                                                'качестве имени '
+                                                'пользователя.']})
 
     def clean(self):
         super().clean()
