@@ -120,12 +120,12 @@ class UserSignUpSerializer(serializers.Serializer):
             )
         return user
 
-    def validate_username(self, value):
-        if value.lower() == 'me':
-            raise serializers.ValidationError(
-                'Использование данного имени запрещено!'
-            )
-        return value
+    # def validate_username(self, value):
+    #     if value.lower() == 'me':
+    #         raise serializers.ValidationError(
+    #             'Использование данного имени запрещено!'
+    #         )
+    #     return value
 
 
 class UserTokenSerializer(serializers.Serializer):

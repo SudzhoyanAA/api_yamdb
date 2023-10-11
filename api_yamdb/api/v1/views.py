@@ -102,8 +102,8 @@ class UserSignUpAPIView(APIView):
             email=queryset.data.get('email')
         ).exists():
             return Response(queryset.data, status=status.HTTP_200_OK)
-        # if queryset.data.get('username') == 'me':
-        #     return Response(queryset.data, status=status.HTTP_400_BAD_REQUEST)
+        if queryset.data.get('username') == 'me':
+            return Response(queryset.data, status=status.HTTP_400_BAD_REQUEST)
         serializer = UserSignUpSerializer(data=queryset.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
