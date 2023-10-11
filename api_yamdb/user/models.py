@@ -3,6 +3,8 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.exceptions import ValidationError
+from rest_framework import status
+from rest_framework.response import Response
 
 from api_yamdb.constants import MAX_ROLE_LENGHT, MAX_USERNAME_LENGTH, \
     MAX_EMAIL_LENGTH
@@ -51,38 +53,26 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
-    def clean(self):
-        # Вызов родительского метода clean.
-        super().clean()
-        username = self.cleaned_data['username']
-        if self.username.lower() == 'me':
-            raise ValidationError({'username': ['Нельзя использовать "me" в '
-                                                'качестве имени '
-                                                'пользователя.']})
+    # Не удается применение clean
+    # Просмотрела множество информации,
+    # в том числе от разработчиков и других
+    #
+    # Нужно ли как-то вызывать clean во view-функции?
+    #
+    # Устанавливала отладочный print(). При прямом вызове функции работает
+    # Этот же print() показал, что в обычном варианте clean не используется
 
     # def clean(self):
     #     super().clean()
-    #
-    #     # Проводим валидацию юзернейма
-    #     username_validator = UnicodeUsernameValidator()
-    #     try:
-    #         username_validator(self.username)
-    #     except ValidationError as e:
-    #         raise ValidationError({'username': e.messages})
-    #
-    #     # Валидация на "me"
-    #     if self.username.lower() == 'me':
+    #     if self.username == 'me':
     #         raise ValidationError({'username': ['Нельзя использовать "me" в '
     #                                             'качестве имени '
     #                                             'пользователя.']})
-    #
-    #     # Проверка на уникальность имени пользователя
-    #     if User.objects.filter(username=self.username).exclude(pk=self.pk).exists():
-    #         raise ValidationError({'username': ['Имя пользователя уже занято']})
-    #
-    #     # Проверка на уникальность email
-    #     if User.objects.filter(email=self.email).exclude(pk=self.pk).exists():
-    #         raise ValidationError({'email': [f'Email {self.email} уже занят']})
+
+    def clean(self) -> None:
+        if self.username == "me":
+            raise ValidationError(f"Недопустимое имя: {self.username}")
+        return super().clean()
 
     @property
     def is_moderator(self):

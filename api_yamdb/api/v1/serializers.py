@@ -107,6 +107,7 @@ class UserSignUpSerializer(serializers.Serializer):
         max_length=MAX_EMAIL_LENGTH,
     )
 
+    # На удаление
     # class Meta:
     #     model = User
     #     fields = ['email', 'username']
@@ -120,12 +121,7 @@ class UserSignUpSerializer(serializers.Serializer):
             )
         return user
 
-    # def validate_username(self, value):
-    #     if value.lower() == 'me':
-    #         raise serializers.ValidationError(
-    #             'Использование данного имени запрещено!'
-    #         )
-    #     return value
+    # Удалена проверка на me
 
 
 class UserTokenSerializer(serializers.Serializer):

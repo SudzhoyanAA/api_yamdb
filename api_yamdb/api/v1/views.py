@@ -1,12 +1,11 @@
 from django.contrib.auth.tokens import default_token_generator
-from django.db import IntegrityError
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from rest_framework import permissions, status, serializers
+from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
@@ -16,13 +15,14 @@ from rest_framework.views import APIView
 from reviews.models import Category, Genre, Review, Title
 from .filters import TitlesFilter
 from .mixins import ListCreateDestroyViewSet, ExcludePutViewSet
+
 from .permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
                           IsAdminOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, TitleReadSerializer,
                           ReviewSerializer, TitleSerializer,
                           UserSerializer, UserTokenSerializer,
-                          UserSignUpSerializer, UserTokenSerializer)
+                          UserSignUpSerializer)
 from .utils import send_message_to_user
 
 User = get_user_model()
@@ -96,29 +96,23 @@ class UserSignUpAPIView(APIView):
     permission_classes = (permissions.AllowAny,)
     # queryset = User.objects.all()
 
-    def post(self, queryset):
+    def post(self, request):
         if User.objects.filter(
-            username=queryset.data.get('username'),
-            email=queryset.data.get('email')
+            username=request.data.get('username'),
+            email=request.data.get('email')
         ).exists():
-            return Response(queryset.data, status=status.HTTP_200_OK)
-        if queryset.data.get('username') == 'me':
-            return Response(queryset.data, status=status.HTTP_400_BAD_REQUEST)
-        serializer = UserSignUpSerializer(data=queryset.data)
+            return Response(request.data, status=status.HTTP_200_OK)
+
+        # две строки ниже оставлены для прохождения тестов
+        if request.data.get('username') == 'me':
+            return Response(request.data, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = UserSignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         confirmation_code = default_token_generator.make_token(user)
         send_message_to_user(user.username, user.email, confirmation_code)
         return Response(serializer.data)
-
-    # def post(self, queryset):
-    #     serializer = UserSignUpSerializer(data=queryset.data)
-    #     serializer.is_valid(raise_exception=True)
-    #     serializer.save()
-    #     user = User.objects.get(email=queryset.data["email"])
-    #     confirmation_code = default_token_generator.make_token(user)
-    #     send_message_to_user(user.username, user.email, confirmation_code)
-    #     return Response(serializer.data)
 
 
 class UserGetTokenAPIView(APIView):
@@ -154,14 +148,14 @@ class UserViewSet(ExcludePutViewSet):
         detail=False,
         permission_classes=[permissions.IsAuthenticated]
     )
-    def me(self, request):
+    def me_get(self, request):
         serializer = UserSerializer(
             self.request.user
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @me.mapping.patch
-    def me2(self, request):
+    @me_get.mapping.patch
+    def me_patch(self, request):
         serializer = UserSerializer(
             self.request.user,
             data=request.data,
