@@ -107,25 +107,25 @@ class UserSignUpSerializer(serializers.Serializer):
         max_length=MAX_EMAIL_LENGTH,
     )
 
-    class Meta:
-        model = User
-        fields = ['email', 'username']
+    # class Meta:
+    #     model = User
+    #     fields = ['email', 'username']
 
-    def create(self, validated_data):
-        try:
-            user = User.objects.get_or_create(**validated_data)[0]
-        except IntegrityError:
-            raise ValidationError(
-                'Отсутствует обязательное поле или оно некорректно',
-            )
-        return user
-
-    def validate_username(self, value):
-        if value.lower() == 'me':
-            raise serializers.ValidationError(
-                'Использование данного имени запрещено!'
-            )
-        return value
+    # def create(self, validated_data):
+    #     try:
+    #         user = User.objects.get_or_create(**validated_data)[0]
+    #     except IntegrityError:
+    #         raise ValidationError(
+    #             'Отсутствует обязательное поле или оно некорректно',
+    #         )
+    #     return user
+    #
+    # def validate_username(self, value):
+    #     if value.lower() == 'me':
+    #         raise serializers.ValidationError(
+    #             'Использование данного имени запрещено!'
+    #         )
+    #     return value
 
 
 class UserTokenSerializer(serializers.Serializer):
