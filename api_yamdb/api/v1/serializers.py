@@ -107,9 +107,9 @@ class UserSignUpSerializer(serializers.Serializer):
         max_length=MAX_EMAIL_LENGTH,
     )
 
-    class Meta:
-        model = User
-        fields = ['email', 'username']
+    # class Meta:
+    #     model = User
+    #     fields = ['email', 'username']
 
     def create(self, validated_data):
         try:
