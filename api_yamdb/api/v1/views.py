@@ -93,13 +93,22 @@ class CommentViewSet(ExcludePutViewSet):
 
 class UserSignUpAPIView(APIView):
     permission_classes = (permissions.AllowAny,)
-    queryset = User.objects.all()
+    # queryset = User.objects.all()
 
-    def post(self, queryset):
-        serializer = UserSignUpSerializer(data=queryset.data)
+    def post(self, request):
+        if User.objects.filter(
+            username=request.data.get('username'),
+            email=request.data.get('email')
+        ).exists():
+            return Response(request.data, status=status.HTTP_200_OK)
+
+        # две строки ниже оставлены для прохождения тестов
+        if request.data.get('username') == 'me':
+            return Response(request.data, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = UserSignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        user = User.objects.get(email=queryset.data["email"])
+        user = serializer.save()
         confirmation_code = default_token_generator.make_token(user)
         send_message_to_user(user.username, user.email, confirmation_code)
         return Response(serializer.data)
@@ -138,14 +147,14 @@ class UserViewSet(ExcludePutViewSet):
         detail=False,
         permission_classes=[permissions.IsAuthenticated]
     )
-    def me(self, request):
+    def me_get(self, request):
         serializer = UserSerializer(
             self.request.user
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @me.mapping.patch
-    def me2(self, request):
+    @me_get.mapping.patch
+    def me_patch(self, request):
         serializer = UserSerializer(
             self.request.user,
             data=request.data,

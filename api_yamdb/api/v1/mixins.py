@@ -11,13 +11,7 @@ class ListCreateDestroyViewSet(
     pass
 
 
-class ExcludePutViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.DestroyModelMixin,
-    viewsets.GenericViewSet,
-):
+class PathMixins():
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         instance = self.get_object()
@@ -30,3 +24,14 @@ class ExcludePutViewSet(
 
     def perform_update(self, serializer):
         serializer.save()
+
+
+class ExcludePutViewSet(
+    mixins.CreateModelMixin,
+    PathMixins,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    pass

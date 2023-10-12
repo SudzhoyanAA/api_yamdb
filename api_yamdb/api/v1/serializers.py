@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.validators import RegexValidator
 from django.db import IntegrityError
-
 from rest_framework import serializers, exceptions
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
@@ -62,8 +61,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         slug_field='username', read_only=True,
         default=serializers.CurrentUserDefault(),
     )
-# если убрать это поле то падают тесты о корректности данных
-# (так же и с коментами).
     title = serializers.SlugRelatedField(
         slug_field='name',
         read_only=True,
@@ -96,38 +93,25 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ('__all__')
 
 
-class UserSignUpSerializer(serializers.ModelSerializer):
+class UserSignUpSerializer(serializers.Serializer):
     username = serializers.CharField(
         required=True,
         max_length=MAX_USERNAME_LENGHT,
         validators=[RegexValidator(regex=r'^[\w.@+-]+\Z')]
-        # Если убрать падают тесты
     )
     email = serializers.EmailField(
         required=True,
         max_length=MAX_EMAIL_LENGTH,
     )
 
-    class Meta:
-        model = User
-        fields = ['email', 'username']
-
     def create(self, validated_data):
         try:
             user = User.objects.get_or_create(**validated_data)[0]
         except IntegrityError:
             raise ValidationError(
-                'Отсутствует обязательное поле или оно некоректно',
+                'Отсутствует обязательное поле или оно некорректно',
             )
         return user
-# Если убрать эту валидацию, то падают тесты
-
-    def validate_username(self, value):
-        if value.lower() == 'me':
-            raise serializers.ValidationError(
-                'Использование данного имени запрещено!'
-            )
-        return value
 
 
 class UserTokenSerializer(serializers.Serializer):

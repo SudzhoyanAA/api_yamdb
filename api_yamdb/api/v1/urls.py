@@ -23,6 +23,6 @@ api_v1.auth = [
 
 ]
 urlpatterns = [
-    path('v1/', include(api_v1.urls)),
-    path('v1/auth/', include(api_v1.auth)),
+    path('', include(api_v1.urls)),
+    path('auth/', include(api_v1.auth)),
 ]
