@@ -1,10 +1,11 @@
-from django.core.exceptions import ValidationError
-from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.exceptions import ValidationError
+from django.db import models
+
 
 from api_yamdb.constants import (
-    MAX_EMAIL_LENGTH, MAX_ROLE_LENGHT, MAX_USERNAME_LENGHT
+    MAX_ROLE_LENGHT, MAX_USERNAME_LENGHT, MAX_EMAIL_LENGTH
 )
 
 
@@ -22,6 +23,7 @@ class User(AbstractUser):
         max_length=MAX_EMAIL_LENGTH,
         unique=True,
     )
+
     username = models.CharField(
         verbose_name='Имя пользователя',
         max_length=MAX_USERNAME_LENGHT,
@@ -50,25 +52,10 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
-    # Не удается применение clean
-    # Просмотрела множество информации,
-    # в том числе от разработчиков и других
-    #
-    # Нужно ли как-то вызывать clean во view-функции?
-    #
-    # Устанавливала отладочный print(). При прямом вызове функции работает
-    # Этот же print() показал, что в обычном варианте clean не используется
-
-    # def clean(self):
-    #     super().clean()
-    #     if self.username == 'me':
-    #         raise ValidationError({'username': ['Нельзя использовать "me" в '
-    #                                             'качестве имени '
-    #                                             'пользователя.']})
-
     def clean(self) -> None:
         if self.username == "me":
-            raise ValidationError(f"Недопустимое имя: {self.username}")
+            raise ValidationError(f'Использование имени '
+                                  f'"{self.username}" недопустимо')
         return super().clean()
 
     @property

@@ -6,7 +6,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 
 from api_yamdb.constants import MAX_USERNAME_LENGHT, MAX_EMAIL_LENGTH
-from reviews.models import Category, Genre, Title, Review, Comment
+from reviews.models import Category, Comment, Genre, Review, Title
 
 User = get_user_model()
 
@@ -105,6 +105,11 @@ class UserSignUpSerializer(serializers.Serializer):
     )
 
     def create(self, validated_data):
+
+        if validated_data['username'] == 'me':
+            raise ValidationError(
+                'Использование имени "me" недопустимо',
+            )
         try:
             user = User.objects.get_or_create(**validated_data)[0]
         except IntegrityError:
@@ -119,17 +124,17 @@ class UserTokenSerializer(serializers.Serializer):
     username = serializers.CharField(required=True,
                                      max_length=MAX_USERNAME_LENGHT)
 
-    def validate_username(self, value):
-        if not User.objects.filter(username=value).exists():
-            raise exceptions.NotFound('Указанное имя не найдено')
-        return value
-
     class Meta:
         model = User
         fields = (
             'username',
             'confirmation_code'
         )
+
+    def validate_username(self, value):
+        if not User.objects.filter(username=value).exists():
+            raise exceptions.NotFound('Указанное имя не найдено')
+        return value
 
 
 class UserSerializer(serializers.ModelSerializer):

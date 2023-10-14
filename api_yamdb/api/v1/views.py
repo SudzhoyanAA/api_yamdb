@@ -93,19 +93,14 @@ class CommentViewSet(ExcludePutViewSet):
 
 class UserSignUpAPIView(APIView):
     permission_classes = (permissions.AllowAny,)
-    # queryset = User.objects.all()
 
     def post(self, request):
-        if User.objects.filter(
-            username=request.data.get('username'),
-            email=request.data.get('email')
-        ).exists():
+        username = request.data.get('username'),
+        email = request.data.get('email')
+        if User.objects.filter(username=username, email=email).exists():
+            confirmation_code = default_token_generator.make_token(username)
+            send_message_to_user(username, email, confirmation_code)
             return Response(request.data, status=status.HTTP_200_OK)
-
-        # две строки ниже оставлены для прохождения тестов
-        if request.data.get('username') == 'me':
-            return Response(request.data, status=status.HTTP_400_BAD_REQUEST)
-
         serializer = UserSignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
