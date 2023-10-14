@@ -62,8 +62,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         slug_field='username', read_only=True,
         default=serializers.CurrentUserDefault(),
     )
-    # если убрать это поле то падают тесты о корректности данных
-    # (так же и с коментами).
+
     title = serializers.SlugRelatedField(
         slug_field='name',
         read_only=True,
@@ -107,12 +106,12 @@ class UserSignUpSerializer(serializers.Serializer):
         max_length=MAX_EMAIL_LENGTH,
     )
 
-    # На удаление
-    # class Meta:
-    #     model = User
-    #     fields = ['email', 'username']
-
     def create(self, validated_data):
+
+        if validated_data['username'] == 'me':
+            raise ValidationError(
+                'Использование имени "me" недопустимо',
+            )
         try:
             user = User.objects.get_or_create(**validated_data)[0]
         except IntegrityError:
@@ -121,18 +120,11 @@ class UserSignUpSerializer(serializers.Serializer):
             )
         return user
 
-    # Удалена проверка на me
-
 
 class UserTokenSerializer(serializers.Serializer):
     confirmation_code = serializers.CharField(required=True)
     username = serializers.CharField(required=True,
                                      max_length=MAX_USERNAME_LENGTH)
-
-    def validate_username(self, value):
-        if not User.objects.filter(username=value).exists():
-            raise exceptions.NotFound('Указанное имя не найдено')
-        return value
 
     class Meta:
         model = User
@@ -140,6 +132,11 @@ class UserTokenSerializer(serializers.Serializer):
             'username',
             'confirmation_code'
         )
+
+    def validate_username(self, value):
+        if not User.objects.filter(username=value).exists():
+            raise exceptions.NotFound('Указанное имя не найдено')
+        return value
 
 
 class UserSerializer(serializers.ModelSerializer):
