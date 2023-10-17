@@ -21,6 +21,5 @@ def send_message_to_user(username, recepient_email, confirmation_code):
 
 
 def make_confirmation_code(data):
-    print('!!!!!!!!!!!!!!!! Для создания кода поступило: ', data)
     confirmation_code = default_token_generator.make_token(data)
     return confirmation_code
