@@ -23,7 +23,7 @@ from .serializers import (CategorySerializer, CommentSerializer,
                           ReviewSerializer, TitleSerializer,
                           UserSerializer, UserTokenSerializer,
                           UserSignUpSerializer)
-from .utils import send_message_to_user
+from .utils import send_message_to_user, make_confirmation_code
 
 User = get_user_model()
 
@@ -96,18 +96,22 @@ class UserSignUpAPIView(APIView):
     permission_classes = (permissions.AllowAny,)
 
     def post(self, request):
-        username = request.data.get('username'),
+        username = request.data.get('username')
         email = request.data.get('email')
         if User.objects.filter(username=username, email=email).exists():
-            confirmation_code = default_token_generator.make_token(username)
-            send_message_to_user(username, email, confirmation_code)
+            send_message_to_user(username, email, make_confirmation_code(
+                    get_object_or_404(User, username=username)))
             return Response(request.data, status=status.HTTP_200_OK)
+        if ((User.objects.filter(email=email).exists() and
+                not User.objects.filter(username=username).exists()) or
+                (User.objects.filter(username=username).exists() and
+                 User.objects.filter(email=email) != email)):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
         serializer = UserSignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        confirmation_code = default_token_generator.make_token(user)
-        send_message_to_user(user.username, user.email, confirmation_code)
-        return Response(serializer.data)
+        send_message_to_user(username, email,
+                             make_confirmation_code(serializer.save()))
+        return Response(request.data, status=status.HTTP_200_OK)
 
 
 class UserGetTokenAPIView(APIView):

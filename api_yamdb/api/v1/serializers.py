@@ -54,7 +54,7 @@ class GetDefaultTitleId:
 
     def __call__(self, serializer_field):
         return (serializer_field.context['request']
-                .parser_context['kwargs']['title_id'])
+        .parser_context['kwargs']['title_id'])
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -106,19 +106,19 @@ class UserSignUpSerializer(serializers.Serializer):
         max_length=MAX_EMAIL_LENGTH,
     )
 
-    def create(self, validated_data):
+    def validate_email(self, data):
+        if data is None or data == '':
+            raise serializers.ValidationError('Вы не указали email')
+        return data
 
-        if validated_data['username'] == 'me':
-            raise ValidationError(
-                'Использование имени "me" недопустимо',
-            )
-        try:
-            user = User.objects.get_or_create(**validated_data)[0]
-        except IntegrityError:
-            raise ValidationError(
-                'Отсутствует обязательное поле или оно некорректно',
-            )
-        return user
+    def validate_username(self, data):
+        if data == 'me':
+            raise ValidationError('Нельзя использовать "me" в '
+                                  'качестве имени пользователя')
+        return data
+
+    def create(self, validated_data):
+        return User.objects.create(**validated_data)
 
 
 class UserTokenSerializer(serializers.Serializer):
